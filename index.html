@@ -5,59 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Will You Be My Valentine?</title>
 <style>
-  /* Basic Reset */
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
+  /* Reset & body */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Poppins', sans-serif;
     background: linear-gradient(to bottom, #ffccd5, #ff99c8);
     height: 100vh;
+    overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
     position: relative;
+    cursor: crosshair;
   }
 
   h1 {
-    color: #ff1a75;
-    font-size: 2.5em;
+    position: absolute;
+    top: 50px;
+    width: 100%;
     text-align: center;
-    margin-bottom: 40px;
+    color: #ff1a75;
+    font-size: 2.5rem;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
     z-index: 2;
-    text-shadow: 2px 2px 5px rgba(0,0,0,0.2);
   }
 
-  .button-container {
-    display: flex;
-    gap: 20px;
-    z-index: 2;
-    position: relative;
-  }
-
-  button {
-    padding: 15px 30px;
-    font-size: 1.2em;
-    border: none;
+  /* Buttons */
+  .btn {
+    position: absolute;
+    padding: 15px 25px;
     border-radius: 12px;
+    border: none;
     cursor: pointer;
-    transition: all 0.3s ease;
+    font-size: 1.2rem;
     color: #fff;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
   }
 
   .yes { background-color: #ff3366; }
   .no { background-color: #cc0033; }
   .think { background-color: #ff6699; }
-
-  button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-  }
 
   /* Flower animation */
   .flower {
@@ -77,14 +65,11 @@
 </head>
 <body>
 
-<div>
-  <h1>Will You Be My Valentine?</h1>
-  <div class="button-container">
-    <button id="yes" class="yes">Yes</button>
-    <button id="no" class="no">No</button>
-    <button id="think" class="think">Think Again</button>
-  </div>
-</div>
+<h1>Will You Be My Valentine?</h1>
+
+<button class="btn yes" id="yes">Yes</button>
+<button class="btn no" id="no">No</button>
+<button class="btn think" id="think">Think Again</button>
 
 <script>
   const yesBtn = document.getElementById('yes');
@@ -93,25 +78,53 @@
 
   let noClickCount = 0;
 
-  yesBtn.addEventListener('click', () => {
-    alert("Yay! ❤️ I love you!");
+  yesBtn.addEventListener('click', () => alert("Yay! ❤️ I love you!"));
+  thinkBtn.addEventListener('click', () => alert("Take your time ❤️"));
+
+  // Randomly position buttons at start
+  const buttons = [yesBtn, noBtn, thinkBtn];
+  function randomPosition(btn) {
+    const x = Math.random() * (window.innerWidth - btn.offsetWidth);
+    const y = Math.random() * (window.innerHeight - btn.offsetHeight - 100) + 50;
+    btn.style.left = x + 'px';
+    btn.style.top = y + 'px';
+  }
+
+  buttons.forEach(btn => randomPosition(btn));
+
+  // Make "No" button avoid cursor
+  noBtn.addEventListener('mousemove', (e) => {
+    const offset = 100;
+    let x = Math.random() * (window.innerWidth - noBtn.offsetWidth);
+    let y = Math.random() * (window.innerHeight - noBtn.offsetHeight - 100) + 50;
+    noBtn.style.left = x + 'px';
+    noBtn.style.top = y + 'px';
   });
 
   noBtn.addEventListener('click', () => {
     noClickCount++;
-    if(noClickCount === 1) {
-      noBtn.textContent = "Think Again 😢";
-    } else if(noClickCount === 2) {
-      noBtn.textContent = "You're hurting me 😭";
-    } else {
-      noBtn.textContent = "Yes, please 😘";
-    }
-  });
-
-  thinkBtn.addEventListener('click', () => {
-    alert("Take your time ❤️");
+    if(noClickCount === 1) noBtn.textContent = "Think Again 😢";
+    else if(noClickCount === 2) noBtn.textContent = "You're hurting me 😭";
+    else noBtn.textContent = "Yes, please 😘";
   });
 
   // Floating flowers
   function createFlower() {
-    const flower =
+    const flower = document.createElement('div');
+    flower.className = 'flower';
+    flower.style.left = Math.random() * window.innerWidth + 'px';
+    flower.style.animationDuration = (5 + Math.random() * 5) + 's';
+    document.body.appendChild(flower);
+    setTimeout(() => flower.remove(), 10000);
+  }
+
+  setInterval(createFlower, 500);
+
+  // Make page responsive to window resize
+  window.addEventListener('resize', () => {
+    buttons.forEach(btn => randomPosition(btn));
+  });
+</script>
+
+</body>
+</html>
