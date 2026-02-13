@@ -12,7 +12,7 @@
       --pink:#ff4d8d; --pink2:#ff7ab3;
       --muted:#ffffffb3; --line:#ffffff20;
 
-      /* Photo background (set via JS) */
+      /* Background photo (set via JS) */
       --photo-url: none;
       --photo-opacity: .28;
       --photo-blur: 10px;
@@ -52,7 +52,7 @@
       z-index:-2;
     }
 
-    /* Dark overlay to keep text readable */
+    /* Dark overlay for readability */
     body::after{
       content:"";
       position:fixed;
@@ -188,11 +188,11 @@
     #flowers{position:fixed; inset:0; pointer-events:none; z-index:20; overflow:hidden}
     #compliments{position:fixed; inset:0; pointer-events:none; z-index:30; overflow:hidden}
 
-    /* Floating flowers */
+    /* Flowers */
     .flower{
       position:absolute;
-      top:-10vh;
-      will-change: transform;
+      top:-12vh;
+      will-change: transform, opacity;
       animation-name: fall;
       animation-timing-function: linear;
       animation-iteration-count: 1;
@@ -200,17 +200,15 @@
       filter: drop-shadow(0 6px 12px #00000066);
       user-select:none;
     }
-
     @keyframes fall{
-      0%   { transform: translate3d(var(--x), -15vh, 0) rotate(0deg); }
-      100% { transform: translate3d(var(--x2), 115vh, 0) rotate(var(--rot)); }
+      0%   { transform: translate3d(0, -15vh, 0) rotate(0deg); }
+      100% { transform: translate3d(var(--dx), 115vh, 0) rotate(var(--rot)); }
     }
 
-    /* Floating compliments */
+    /* Compliments */
     .compliment{
       position:absolute;
-      left:0;
-      bottom:-12vh;
+      bottom:-14vh;
       padding:10px 14px;
       border-radius:999px;
       border:1px solid #ffffff2a;
@@ -218,7 +216,7 @@
       backdrop-filter: blur(10px);
       box-shadow: 0 18px 50px #00000055;
       color:#fff;
-      font-weight:800;
+      font-weight:900;
       letter-spacing:-0.01em;
       white-space:nowrap;
       user-select:none;
@@ -227,11 +225,10 @@
       animation-timing-function: linear;
       animation-iteration-count: 1;
       opacity: .98;
-      max-width: 92vw;
+      max-width: 88vw;
+      overflow:hidden;
       text-overflow: ellipsis;
-      overflow: hidden;
     }
-
     .compliment small{
       display:block;
       font-weight:700;
@@ -239,11 +236,10 @@
       margin-top:2px;
       letter-spacing:0;
     }
-
     @keyframes rise{
-      0%   { transform: translate3d(var(--x), 10vh, 0) rotate(0deg); opacity:0; }
+      0%   { transform: translate3d(0, 10vh, 0) rotate(0deg); opacity:0; }
       10%  { opacity: .98; }
-      100% { transform: translate3d(var(--x2), -120vh, 0) rotate(var(--rot)); opacity:0; }
+      100% { transform: translate3d(var(--dx), -120vh, 0) rotate(var(--rot)); opacity:0; }
     }
   </style>
 </head>
@@ -262,14 +258,14 @@
       </p>
 
       <div class="buttons">
-        <button id="yes">Yes 💖</button>
-        <button id="no">No 🙃</button>
+        <button id="yes" aria-label="Yes">Yes 💖</button>
+        <button id="no" aria-label="No">No 🙃</button>
       </div>
       <div class="hint">P.S. The “No” button is… emotionally unavailable.</div>
     </div>
 
     <div class="card">
-      <div class="locked" id="planBox">
+      <div class="locked">
         <div class="big" id="lockTitle">Valentine Lunch Plan 🔒</div>
         <div class="small" id="lockSub">Unlock by clicking “Yes”. (No negotiations. Only love.)</div>
 
@@ -299,28 +295,45 @@
   <div class="toast" id="toast">💬 <span id="toastText"></span></div>
 
 <script>
-  // ====== SET YOUR PHOTO HERE ======
-  // Put "us.jpg" next to this HTML file.
-  const PHOTO_URL = "Us.JPG";
-
+  // =========================
+  // 1) PHOTO (GitHub Pages)
+  // Put "us.jpg" in the same repo folder as index.html
+  // =========================
+  var PHOTO_URL = "Us.JPG";
   if (PHOTO_URL) {
-    document.documentElement.style.setProperty("--photo-url", `url('${PHOTO_URL}')`);
+    document.documentElement.style.setProperty("--photo-url", "url('" + PHOTO_URL + "')");
   }
 
-  const noBtn = document.getElementById('no');
-  const yesBtn = document.getElementById('yes');
-  const toast = document.getElementById('toast');
-  const toastText = document.getElementById('toastText');
-  const reveal = document.getElementById('reveal');
-  const lockTitle = document.getElementById('lockTitle');
-  const lockSub = document.getElementById('lockSub');
-  const finalBox = document.getElementById('final');
-  const chosen = document.getElementById('chosen');
+  // =========================
+  // Helpers
+  // =========================
+  function rand(min, max){ return Math.random() * (max - min) + min; }
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#039;");
+  }
 
-  // Ensure the NO button dodges at least 3 times
-  let dodgeCount = 0;
+  // Toast
+  var toast = document.getElementById('toast');
+  var toastText = document.getElementById('toastText');
+  function showToast(msg){
+    toastText.textContent = msg;
+    toast.style.display = 'flex';
+    clearTimeout(showToast.t);
+    showToast.t = setTimeout(function(){ toast.style.display='none'; }, 1600);
+  }
 
-  const noLines = [
+  // =========================
+  // 2) NO BUTTON (dodges >= 3)
+  // =========================
+  var noBtn = document.getElementById('no');
+  var dodgeCount = 0;
+  var noLines = [
     "Nice try 😌",
     "That button is decorative.",
     "My heart says: denied 💘",
@@ -329,193 +342,183 @@
     "This click has been respectfully rejected."
   ];
 
-  function showToast(msg){
-    toastText.textContent = msg;
-    toast.style.display = 'flex';
-    clearTimeout(showToast.t);
-    showToast.t = setTimeout(()=> toast.style.display='none', 1600);
-  }
-
-  function dodge(){
+  function dodgeNo(){
     dodgeCount++;
 
-    const pad = 16;
-    const rect = noBtn.getBoundingClientRect();
-    const vw = window.innerWidth, vh = window.innerHeight;
+    var pad = 16;
+    var rect = noBtn.getBoundingClientRect();
+    var vw = window.innerWidth, vh = window.innerHeight;
 
-    const x = Math.max(pad, Math.min(vw - rect.width - pad, Math.random() * (vw - rect.width)));
-    const y = Math.max(pad, Math.min(vh - rect.height - pad, Math.random() * (vh - rect.height)));
+    // Avoid landing on top of the Yes button area (simple safe zone)
+    var safeTop = 80; // keep it away from very top
+    var x = Math.max(pad, Math.min(vw - rect.width - pad, Math.random() * (vw - rect.width)));
+    var y = Math.max(safeTop, Math.min(vh - rect.height - pad, Math.random() * (vh - rect.height)));
 
     noBtn.style.position = "fixed";
     noBtn.style.left = x + "px";
-    noBtn.style.top = y + "px";
+    noBtn.style.top  = y + "px";
 
     if (dodgeCount === 3) showToast("Okay okay… three times. Still no 😌");
-    else showToast(noLines[Math.floor(Math.random()*noLines.length)]);
+    else showToast(noLines[Math.floor(Math.random() * noLines.length)]);
   }
 
-  noBtn.addEventListener('mouseenter', dodge);
-  noBtn.addEventListener('click', (e) => { e.preventDefault(); dodge(); });
+  // Desktop hover + click
+  noBtn.addEventListener('mouseenter', dodgeNo);
+  noBtn.addEventListener('click', function(e){ e.preventDefault(); dodgeNo(); });
 
-  // YES click: unlock + flower shower + compliments + make photo more visible
-  yesBtn.addEventListener('click', () => {
-    lockTitle.textContent = "Valentine Lunch Plan ✅ Unlocked";
-    lockSub.textContent = "Alright then… let’s make it official 😍";
-    reveal.style.display = "block";
+  // Mobile tap
+  noBtn.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    dodgeNo();
+  }, { passive:false });
 
-    document.documentElement.style.setProperty("--photo-opacity", ".42");
-    document.documentElement.style.setProperty("--photo-blur", "8px");
-
-    showToast("YAY! Best answer ever 💖");
-
-    confettiBurst();
-    startFlowerShower(160, 10000);
-    startCompliments(18, 10000); // compliments floating for ~10 seconds
-  });
-
-  document.querySelectorAll('.venue').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const place = btn.dataset.place;
-      chosen.textContent = place;
-      finalBox.style.display = "block";
-      showToast(`Locked in: ${place} ✅`);
-      confettiBurst(90);
-      startFlowerShower(90, 4500);
-      startCompliments(10, 4500);
-    });
-  });
-
-  // ====== FLOWERS ======
-  const flowerLayer = document.getElementById("flowers");
-  const FLOWERS = ["🌸","🌷","🌺","💐","🌹","🌼"];
+  // =========================
+  // 3) FLOWERS
+  // =========================
+  var flowerLayer = document.getElementById("flowers");
+  var FLOWERS = ["🌸","🌷","🌺","💐","🌹","🌼"];
+  var flowerInterval = null;
 
   function spawnFlower(){
-    const el = document.createElement("span");
+    if (!flowerLayer) return;
+
+    var el = document.createElement("span");
     el.className = "flower";
     el.textContent = FLOWERS[Math.floor(Math.random() * FLOWERS.length)];
 
-    const size = rand(18, 42);
-    const startX = rand(0, 100);
-    const endX = clamp(startX + rand(-14, 14), 0, 100);
+    var size = rand(18, 42);
+    var startX = rand(0, 100);
+    var endX   = clamp(startX + rand(-14, 14), 0, 100);
+    var dx     = (endX - startX) + "vw";
 
-    const duration = rand(4500, 9500);
-    const delay = rand(0, 900);
-    const rot = rand(-720, 720) + "deg";
-    const opacity = rand(0.65, 1);
+    var duration = rand(4500, 9500);
+    var delay    = rand(0, 800);
+    var rot      = rand(-720, 720) + "deg";
+    var opacity  = rand(0.65, 1);
 
     el.style.left = startX + "vw";
     el.style.fontSize = size + "px";
     el.style.opacity = opacity;
-
-    el.style.setProperty("--x", "0vw");
-    el.style.setProperty("--x2", (endX - startX) + "vw");
+    el.style.setProperty("--dx", dx);
     el.style.setProperty("--rot", rot);
-
     el.style.animationDuration = duration + "ms";
     el.style.animationDelay = delay + "ms";
 
     flowerLayer.appendChild(el);
-
-    const total = duration + delay + 200;
-    setTimeout(() => el.remove(), total);
+    setTimeout(function(){ el.remove(); }, duration + delay + 300);
   }
 
-  function startFlowerShower(amount = 80, runForMs = 6000){
-    for(let i=0;i<Math.min(amount, 90); i++) spawnFlower();
+  function startFlowerShower(runForMs){
+    if (!flowerLayer) return;
 
-    const interval = setInterval(() => {
-      for(let i=0;i<6;i++) spawnFlower();
+    // clear any previous run
+    if (flowerInterval) clearInterval(flowerInterval);
+
+    // burst
+    for (var i=0; i<90; i++) spawnFlower();
+
+    // continuous
+    flowerInterval = setInterval(function(){
+      for (var j=0; j<6; j++) spawnFlower();
     }, 220);
 
-    setTimeout(() => clearInterval(interval), runForMs);
+    setTimeout(function(){
+      if (flowerInterval) clearInterval(flowerInterval);
+      flowerInterval = null;
+    }, runForMs || 9000);
   }
 
-  // ====== COMPLIMENTS ======
-  const complimentLayer = document.getElementById("compliments");
+  // =========================
+  // 4) COMPLIMENTS
+  // =========================
+  var complimentLayer = document.getElementById("compliments");
+  var complimentInterval = null;
 
-  // Edit these however you like:
-  const COMPLIMENTS = [
+  var COMPLIMENTS = [
     { t: "Arfa, you’re breathtaking ✨", s: "Your beauty honestly stops me." },
-    { t: "Your kindness is my favorite comfort 🤍", s: "You make life feel gentle." },
-    { t: "Your love for me is a gift 💖", s: "I feel lucky every day." },
-    { t: "Your sincerity is rare and beautiful 🌷", s: "Real, pure, you." },
-    { t: "You make my world brighter 🌟", s: "Even on the hard days." },
-    { t: "I’m proud to call you mine 🥰", s: "And happier to call you my wife." }
+    { t: "Your kindness is my peace 🤍", s: "You make everything feel softer." },
+    { t: "Your love for me is priceless 💖", s: "I feel lucky every single day." },
+    { t: "Your sincerity is beautiful 🌷", s: "Real, pure, and rare." },
+    { t: "You make my world brighter 🌟", s: "Even on the hardest days." },
+    { t: "My favorite view is you 😍", s: "Especially when you smile." },
+    { t: "I adore your heart 💐", s: "The way you care is unmatched." }
   ];
 
   function spawnCompliment(){
-    const item = COMPLIMENTS[Math.floor(Math.random() * COMPLIMENTS.length)];
+    if (!complimentLayer) return;
 
-    const el = document.createElement("div");
+    var item = COMPLIMENTS[Math.floor(Math.random() * COMPLIMENTS.length)];
+    var el = document.createElement("div");
     el.className = "compliment";
-    el.innerHTML = `${escapeHtml(item.t)}<small>${escapeHtml(item.s)}</small>`;
+    el.innerHTML = escapeHtml(item.t) + "<small>" + escapeHtml(item.s) + "</small>";
 
-    const startX = rand(4, 86);                 // keep within screen
-    const endX = clamp(startX + rand(-10, 10), 2, 88);
-    const duration = rand(5200, 9800);
-    const delay = rand(0, 900);
-    const rot = rand(-8, 8) + "deg";
-    const fontSize = rand(13, 18);
+    var startX = rand(4, 86);
+    var endX   = clamp(startX + rand(-10, 10), 2, 88);
+    var dx     = (endX - startX) + "vw";
+
+    var duration = rand(5200, 9800);
+    var delay    = rand(0, 900);
+    var rot      = rand(-8, 8) + "deg";
+    var fontSize = rand(13, 18);
 
     el.style.left = startX + "vw";
     el.style.fontSize = fontSize + "px";
-
-    el.style.setProperty("--x", "0vw");
-    el.style.setProperty("--x2", (endX - startX) + "vw");
+    el.style.setProperty("--dx", dx);
     el.style.setProperty("--rot", rot);
-
     el.style.animationDuration = duration + "ms";
     el.style.animationDelay = delay + "ms";
 
     complimentLayer.appendChild(el);
-
-    const total = duration + delay + 200;
-    setTimeout(() => el.remove(), total);
+    setTimeout(function(){ el.remove(); }, duration + delay + 300);
   }
 
-  function startCompliments(amount = 12, runForMs = 6000){
-    for(let i=0;i<Math.min(amount, 14); i++) spawnCompliment();
+  function startCompliments(runForMs){
+    if (!complimentLayer) return;
 
-    const interval = setInterval(() => {
+    if (complimentInterval) clearInterval(complimentInterval);
+
+    // burst
+    for (var i=0; i<10; i++) spawnCompliment();
+
+    complimentInterval = setInterval(function(){
       spawnCompliment();
-      if (Math.random() > 0.5) spawnCompliment(); // sometimes double
+      if (Math.random() > 0.55) spawnCompliment();
     }, 520);
 
-    setTimeout(() => clearInterval(interval), runForMs);
+    setTimeout(function(){
+      if (complimentInterval) clearInterval(complimentInterval);
+      complimentInterval = null;
+    }, runForMs || 9000);
   }
 
-  function escapeHtml(str){
-    return String(str)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+  // =========================
+  // 5) HEART CONFETTI
+  // =========================
+  var canvas = document.getElementById('confetti');
+  var ctx = canvas.getContext('2d');
+  var W=0, H=0, parts=[];
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
   }
+  window.addEventListener('resize', resize);
+  resize();
 
-  function rand(min, max){ return Math.random() * (max - min) + min; }
-  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-
-  // ====== HEART CONFETTI ======
-  const canvas = document.getElementById('confetti');
-  const ctx = canvas.getContext('2d');
-  let W,H,parts=[];
-  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
-  window.addEventListener('resize', resize); resize();
-
-  function heartPath(x,y,s){
+  function heartPath(s){
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.bezierCurveTo(x, y - s*0.5, x - s, y - s*0.1, x - s, y + s*0.4);
-    ctx.bezierCurveTo(x - s, y + s, x, y + s*1.1, x, y + s*1.4);
-    ctx.bezierCurveTo(x, y + s*1.1, x + s, y + s, x + s, y + s*0.4);
-    ctx.bezierCurveTo(x + s, y - s*0.1, x, y - s*0.5, x, y);
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(0, -s*0.5, -s, -s*0.1, -s, s*0.4);
+    ctx.bezierCurveTo(-s, s, 0, s*1.1, 0, s*1.4);
+    ctx.bezierCurveTo(0, s*1.1, s, s, s, s*0.4);
+    ctx.bezierCurveTo(s, -s*0.1, 0, -s*0.5, 0, 0);
     ctx.closePath();
   }
 
-  function confettiBurst(count=140){
+  function confettiBurst(count){
+    count = count || 140;
     parts = [];
-    for(let i=0;i<count;i++){
+    for (var i=0; i<count; i++){
       parts.push({
         x: W/2 + (Math.random()-0.5)*120,
         y: H/2 + (Math.random()-0.5)*60,
@@ -533,27 +536,67 @@
 
   function tick(){
     ctx.clearRect(0,0,W,H);
-    let alive = 0;
-    for(const p of parts){
+    var alive = 0;
+    for (var i=0; i<parts.length; i++){
+      var p = parts[i];
       p.vy += p.g;
       p.x += p.vx;
       p.y += p.vy;
       p.r += p.vr;
       p.a *= 0.985;
 
-      if(p.a > 0.03 && p.y < H + 50){
+      if (p.a > 0.03 && p.y < H + 50){
         alive++;
         ctx.save();
         ctx.globalAlpha = p.a;
         ctx.translate(p.x, p.y);
         ctx.rotate(p.r);
         ctx.fillStyle = "rgba(255,77,141,0.95)";
-        heartPath(0,0,p.s);
+        heartPath(p.s);
         ctx.fill();
         ctx.restore();
       }
     }
-    if(alive) requestAnimationFrame(tick);
+    if (alive) requestAnimationFrame(tick);
+  }
+
+  // =========================
+  // 6) YES CLICK + VENUE PICK
+  // =========================
+  var yesBtn = document.getElementById('yes');
+  var reveal = document.getElementById('reveal');
+  var lockTitle = document.getElementById('lockTitle');
+  var lockSub = document.getElementById('lockSub');
+  var finalBox = document.getElementById('final');
+  var chosen = document.getElementById('chosen');
+
+  yesBtn.addEventListener('click', function(){
+    lockTitle.textContent = "Valentine Lunch Plan ✅ Unlocked";
+    lockSub.textContent = "Alright then… let’s make it official 😍";
+    reveal.style.display = "block";
+
+    // make background photo slightly more visible after YES
+    document.documentElement.style.setProperty("--photo-opacity", ".42");
+    document.documentElement.style.setProperty("--photo-blur", "8px");
+
+    showToast("YAY! Best answer ever 💖");
+    confettiBurst(160);
+    startFlowerShower(10000);
+    startCompliments(10000);
+  });
+
+  var venueButtons = document.querySelectorAll('.venue');
+  for (var i=0; i<venueButtons.length; i++){
+    venueButtons[i].addEventListener('click', function(){
+      var place = this.getAttribute('data-place');
+      chosen.textContent = place;
+      finalBox.style.display = "block";
+
+      showToast("Locked in: " + place + " ✅");
+      confettiBurst(110);
+      startFlowerShower(5000);
+      startCompliments(5000);
+    });
   }
 </script>
 </body>
